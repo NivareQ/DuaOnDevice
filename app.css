@@ -51,3 +51,27 @@
 .quran-footnote-list{display:grid;gap:10px;margin-top:10px}.quran-footnote-item{padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface2)}
 .quran-footnote-item strong{font-size:11px;color:var(--accent)}.quran-footnote-text{margin:5px 0 0!important;white-space:pre-wrap;font-size:12px;line-height:1.55}
 .quran-sources-guide p{white-space:normal}
+
+/* Smart Search Build 4 — optional local neural layer */
+.neural-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 14px;padding:12px 13px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.neural-copy{min-width:0;display:flex;flex-direction:column;gap:4px}.neural-copy strong{font-size:.93rem}.neural-copy span{font-size:.8rem;color:var(--muted);line-height:1.35}.neural-panel .soft-btn{flex:0 0 auto;white-space:nowrap}
+.neural-progress{height:5px;border-radius:999px;background:color-mix(in srgb,var(--line) 72%,transparent);overflow:hidden;margin-top:3px}.neural-progress>span{display:block;height:100%;border-radius:999px;background:currentColor;opacity:.6;transition:width .18s ease}
+@media(max-width:560px){.neural-panel{align-items:flex-start;flex-direction:column}.neural-panel .soft-btn{width:100%}}
+
+/* Smart Search Build 5 — selectable local AI */
+.neural-model-grid{display:grid;gap:10px;margin:10px 0 8px}
+.neural-model-card{width:100%;text-align:left;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:14px;padding:12px 13px;display:flex;flex-direction:column;gap:7px;cursor:pointer}
+.neural-model-card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.neural-model-card>span:last-child{font-size:.82rem;opacity:.76}
+.neural-model-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.neural-model-head em{font-style:normal;font-size:.68rem;line-height:1;padding:4px 6px;border-radius:999px;background:var(--soft);opacity:.9}
+.neural-model-note,.guide-fine{font-size:.82rem;line-height:1.45;opacity:.75;margin:7px 2px 10px}
+.neural-license-note{display:flex;flex-direction:column;gap:4px;margin:8px 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.neural-license-note strong{font-size:.84rem}.neural-license-note span{font-size:.8rem;line-height:1.4;opacity:.82}
+@media (min-width:720px){.neural-model-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Smart Search Build 5 R1 — neural inference/indexing moved off the UI thread. */
+
+/* Smart Search Build 6 — focused E5-only Settings control. */
+.neural-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.neural-model-meta{display:block;font-size:.76rem!important;opacity:.72}.settings-group .neural-panel{margin-top:8px}.settings-group .neural-model-note{margin:0 2px 8px}
+@media(max-width:560px){.neural-actions{width:100%}.neural-actions .soft-btn{flex:1 1 auto}}

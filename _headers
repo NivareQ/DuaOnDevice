@@ -3,9 +3,18 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://*.xethub.hf.co https://*.xet.hf.co blob:; img-src 'self' data:; style-src 'self' 'unsafe-inline'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
 
 /index.html
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-store, must-revalidate
+/boot.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/app.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/neural-search.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/neural-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
 /sw.js
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-store, must-revalidate

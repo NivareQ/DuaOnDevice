@@ -1,0 +1,63 @@
+'use strict';
+
+const HF_RUNTIME='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+const CORPUS_SHA='1debdccd9ba2c758a97cde4417f47264c8dbff574afc0c59b502c160cf583caa';
+const DOC_SCHEMA='e5-final-v1';
+const LEGACY_DOC_SCHEMA='b5-selectable-v1';
+const DB_NAME='duaondevice-neural-search';
+const DB_VERSION=1;
+const STORE='vectors';
+const STATIC_INDEX_URL='./data/e5-precomputed-index.json';
+const STATIC_FORMAT='nivareq.duaondevice.e5-precomputed-index';
+const MODEL={
+  key:'e5',name:'Multilingual E5 Small',shortName:'E5 Small',
+  id:'Xenova/multilingual-e5-small',revision:'main',dtype:'q8',
+  pooling:'mean',queryPrefix:'query: ',docPrefix:'passage: ',maxLength:256,
+  approxMB:118,license:'MIT'
+};
+const RETIRED_MODEL_IDS=[
+  'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+  'jinaai/jina-embeddings-v5-text-nano-retrieval',
+  'onnx-community/embeddinggemma-300m-ONNX'
+];
+const RETIRED_CUSTOM_CACHES=[
+  'duaondevice-smart-search-b5-jina-model-v1',
+  'duaondevice-smart-search-b4-gemma-models-v1',
+  'duaondevice-neural-pwa-spike-r5-models-v1',
+  'duaondevice-neural-pwa-spike-r4-models-v1'
+];
+let hf=null,pipelineRuntime=null,ids=[],vectors=null,dim=0,indexSource='';
+function vectorKey(){return `${MODEL.id}@${MODEL.revision}:${CORPUS_SHA}:${DOC_SCHEMA}`}
+function legacyVectorKey(){return `${MODEL.id}@${MODEL.revision}:${CORPUS_SHA}:${LEGACY_DOC_SCHEMA}`}
+function normalizeVector(v){let s=0;for(const x of v)s+=Number(x)*Number(x);s=Math.sqrt(s)||1;return Float32Array.from(v,x=>Number(x)/s)}
+function dotAt(q,flat,offset,n){let s=0;for(let i=0;i<n;i++)s+=q[i]*flat[offset+i];return s}
+function docText(r){const title=[r.title_en,r.title_bn].filter(Boolean).join(' / ');const text=[r.meaning_en,r.meaning_bn,r.transliteration_en,r.transliteration_bn,(r.topics||[]).join(' ')].filter(Boolean).join(' | ');return `title: ${title||'none'} | text: ${text}`}
+function urlMatchesModel(url,id){const s=String(url||'');return s.includes(`/${id}/`)||s.includes(id)||s.includes(encodeURIComponent(id))||s.includes(id.replace('/','%2F'))}
+function progress(requestId,stage,message,pct){postMessage({kind:'progress',requestId,progress:{stage,message,progress:pct}})}
+function yieldTurn(){return new Promise(resolve=>setTimeout(resolve,0))}
+async function loadHF(){if(hf)return hf;hf=await import(HF_RUNTIME);hf.env.useBrowserCache=true;hf.env.allowRemoteModels=true;if(hf.env.backends?.onnx?.wasm){hf.env.backends.onnx.wasm.numThreads=1;hf.env.backends.onnx.wasm.proxy=false;hf.env.backends.onnx.wasm.wasmPaths='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/'}return hf}
+function openDb(){return new Promise((resolve,reject)=>{if(!('indexedDB'in self))return reject(new Error('IndexedDB unavailable'));const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'key'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Neural index database failed to open'))})}
+async function dbGet(key){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('Neural index read failed'));tx.oncomplete=()=>db.close();tx.onerror=()=>{try{db.close()}catch{}}})}
+async function dbPut(value){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{const e=tx.error||new Error('Neural index write failed');db.close();reject(e)};tx.onabort=tx.onerror})}
+async function dbDeleteAll(){try{const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('Neural index cleanup failed'))});db.close()}catch{}}
+async function dbHasAnyVector(){try{return !!((await dbGet(vectorKey()))||(await dbGet(legacyVectorKey())))}catch{return false}}
+function validateIds(records,got){const expected=records.map(r=>r.id);return Array.isArray(got)&&got.length===expected.length&&!got.some((id,i)=>id!==expected[i])}
+function loadRecordIntoMemory(rec,records){if(!rec||!validateIds(records,rec.ids)||!(rec.buffer instanceof ArrayBuffer)||!Number(rec.dim))return false;const f=new Float32Array(rec.buffer);if(f.length!==rec.ids.length*Number(rec.dim))return false;ids=rec.ids.slice();vectors=f;dim=Number(rec.dim);return true}
+async function loadVectorCache(records){let rec=await dbGet(vectorKey());if(loadRecordIntoMemory(rec,records)){indexSource='indexeddb';return true}rec=await dbGet(legacyVectorKey());if(loadRecordIntoMemory(rec,records)){indexSource='legacy-migrated';await dbPut({key:vectorKey(),model:MODEL.id,revision:MODEL.revision,corpusSha:CORPUS_SHA,docSchema:DOC_SCHEMA,ids:ids.slice(),dim,buffer:vectors.buffer.slice(0),createdAt:new Date().toISOString(),migratedFrom:LEGACY_DOC_SCHEMA});return true}return false}
+function b64ToBytes(s){const bin=atob(s),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
+function bytesToB64(bytes){let out='',step=0x8000;for(let i=0;i<bytes.length;i+=step)out+=String.fromCharCode(...bytes.subarray(i,Math.min(bytes.length,i+step)));return btoa(out)}
+async function loadStaticIndex(records){try{const r=await fetch(STATIC_INDEX_URL,{cache:'force-cache'});if(!r.ok)return false;const x=await r.json();if(x?.format!==STATIC_FORMAT||Number(x.version)!==1||x.model!==MODEL.id||x.revision!==MODEL.revision||x.dtype!=='q8'||x.corpusSha!==CORPUS_SHA||!validateIds(records,x.ids)||!Number(x.dim)||typeof x.vectorDataBase64!=='string'||!x.vectorDataBase64)return false;const bytes=b64ToBytes(x.vectorDataBase64);if(bytes.byteLength!==x.ids.length*Number(x.dim)*4)return false;const aligned=bytes.byteOffset%4===0?bytes:new Uint8Array(bytes);const f=new Float32Array(aligned.buffer,aligned.byteOffset,aligned.byteLength/4);ids=x.ids.slice();vectors=new Float32Array(f);dim=Number(x.dim);indexSource='shipped-precomputed';await dbPut({key:vectorKey(),model:MODEL.id,revision:MODEL.revision,corpusSha:CORPUS_SHA,docSchema:DOC_SCHEMA,ids:ids.slice(),dim,buffer:vectors.buffer.slice(0),createdAt:new Date().toISOString(),source:'shipped-precomputed'});return true}catch{return false}}
+async function findCachedRequestForModel(modelId){if(!('caches'in self))return false;try{for(const key of await caches.keys()){let c;try{c=await caches.open(key)}catch{continue}let reqs;try{reqs=await c.keys()}catch{continue}if(reqs.some(r=>urlMatchesModel(r.url,modelId)&&/\.onnx(?:$|\?)/i.test(r.url)))return true}}catch{}return false}
+async function staticIndexLooksUsable(){try{const r=await fetch(STATIC_INDEX_URL,{cache:'force-cache'});if(!r.ok)return false;const x=await r.clone().json();return x?.format===STATIC_FORMAT&&x?.corpusSha===CORPUS_SHA&&typeof x?.vectorDataBase64==='string'&&x.vectorDataBase64.length>1000}catch{return false}}
+async function inspect(){return{modelCached:await findCachedRequestForModel(MODEL.id),vectorCached:await dbHasAnyVector(),staticIndex:await staticIndexLooksUsable(),model:MODEL.id,docSchema:DOC_SCHEMA}}
+function tensorRows(t,count){if(!t?.data)throw new Error('Embedding output has no data');const d=t.data.length/count;if(!Number.isInteger(d)||d<=0)throw new Error('Unexpected embedding output shape');const out=[];for(let i=0;i<count;i++)out.push(normalizeVector(t.data.slice(i*d,(i+1)*d)));return out}
+async function loadPipeline(requestId){const mod=await loadHF();progress(requestId,'runtime','Loading E5 Small WASM runtime…',2);pipelineRuntime=await mod.pipeline('feature-extraction',MODEL.id,{dtype:MODEL.dtype,device:'wasm',progress_callback:info=>{const p=Number(info.progress);if(Number.isFinite(p))progress(requestId,'download',`E5 Small: ${info.file||info.status||'model'} ${Math.round(p)}%`,Math.min(90,p*.9))}})}
+async function embedTexts(texts,role='query'){if(!pipelineRuntime)throw new Error('E5 Small is not ready');const prefix=role==='query'?MODEL.queryPrefix:MODEL.docPrefix,input=texts.map(x=>prefix+x);const out=await pipelineRuntime(input,{pooling:MODEL.pooling,normalize:true});return tensorRows(out,input.length)}
+async function buildVectors(records,requestId){const BATCH=4;let all=null,actualDim=0;for(let i=0;i<records.length;i+=BATCH){const batch=records.slice(i,i+BATCH),rows=await embedTexts(batch.map(docText),'document');if(!actualDim){actualDim=rows[0]?.length||0;if(!actualDim)throw new Error('Could not determine embedding dimensions');all=new Float32Array(records.length*actualDim)}for(let j=0;j<rows.length;j++){if(rows[j].length!==actualDim)throw new Error('Embedding dimension changed during indexing');all.set(rows[j],(i+j)*actualDim)}progress(requestId,'index',`One-time fallback indexing ${Math.min(i+BATCH,records.length)}/${records.length}…`,Math.min(100,Math.round(((i+BATCH)/records.length)*100)));await yieldTurn()}ids=records.map(r=>r.id);vectors=all;dim=actualDim;indexSource='runtime-fallback';await dbPut({key:vectorKey(),model:MODEL.id,revision:MODEL.revision,corpusSha:CORPUS_SHA,docSchema:DOC_SCHEMA,ids,dim,buffer:vectors.buffer.slice(0),createdAt:new Date().toISOString(),source:indexSource})}
+async function deleteModelRequests(modelIds){if(!('caches'in self)||!modelIds.length)return;try{for(const key of await caches.keys()){let c;try{c=await caches.open(key)}catch{continue}let reqs;try{reqs=await c.keys()}catch{continue}for(const req of reqs){if(modelIds.some(id=>urlMatchesModel(req.url,id)))try{await c.delete(req)}catch{}}}}catch{}}
+async function purgeRetiredModels(){await deleteModelRequests(RETIRED_MODEL_IDS);for(const key of RETIRED_CUSTOM_CACHES)try{await caches.delete(key)}catch{}}
+async function prepare(records,requestId){if(pipelineRuntime&&vectors&&ids.length===records.length)return{status:'ready',modelKey:'e5',model:MODEL.name,dim,count:ids.length,indexSource,staticIndex:indexSource==='shipped-precomputed'};await loadPipeline(requestId);let cached=false;try{cached=await loadVectorCache(records)}catch{}if(!cached)cached=await loadStaticIndex(records);if(!cached){progress(requestId,'index','Precomputed E5 index unavailable; building one-time fallback index…',0);await buildVectors(records,requestId)}await purgeRetiredModels();progress(requestId,'ready',`E5 Small is ready (${indexSource}).`,100);return{status:'ready',modelKey:'e5',model:MODEL.name,dim,count:ids.length,indexSource,staticIndex:indexSource==='shipped-precomputed'}}
+async function search(query,limit=8){if(!pipelineRuntime||!vectors||!ids.length)throw new Error('E5 Small local search is not ready');const t=performance.now(),[q]=await embedTexts([query],'query'),ms=performance.now()-t;const ranked=ids.map((id,i)=>({id,score:dotAt(q,vectors,i*dim,dim)})).sort((a,b)=>b.score-a.score).slice(0,Math.max(1,limit));return{ranked,latencyMs:ms,modelKey:'e5',model:MODEL.name,indexSource}}
+async function exportIndex(){if(!vectors||!ids.length||!dim)throw new Error('E5 index is not ready');const bytes=new Uint8Array(vectors.buffer,vectors.byteOffset,vectors.byteLength);return{format:STATIC_FORMAT,version:1,model:MODEL.id,revision:MODEL.revision,dtype:MODEL.dtype,pooling:MODEL.pooling,normalize:true,queryPrefix:MODEL.queryPrefix,docPrefix:MODEL.docPrefix,maxLength:MODEL.maxLength,corpusSha:CORPUS_SHA,docSchema:DOC_SCHEMA,ids:ids.slice(),dim,vectorDataBase64:bytesToB64(bytes),generatedAt:new Date().toISOString(),source:indexSource}}
+async function clear(){try{if(pipelineRuntime?.dispose)await pipelineRuntime.dispose()}catch{}pipelineRuntime=null;ids=[];vectors=null;dim=0;indexSource='';await dbDeleteAll();await deleteModelRequests([MODEL.id,...RETIRED_MODEL_IDS]);await purgeRetiredModels();return{status:'idle'}}
+self.onmessage=async e=>{const m=e.data||{},requestId=m.requestId,type=m.type,p=m.payload||{};try{let result;if(type==='inspect')result=await inspect();else if(type==='prepare')result=await prepare(p.records||[],requestId);else if(type==='search')result=await search(String(p.query||''),Number(p.limit)||8);else if(type==='clear')result=await clear();else if(type==='exportIndex')result=await exportIndex();else if(type==='dispose'){try{if(pipelineRuntime?.dispose)await pipelineRuntime.dispose()}catch{}pipelineRuntime=null;result={status:'idle'}}else throw new Error(`Unknown neural worker request: ${type}`);postMessage({kind:'response',requestId,ok:true,result})}catch(err){postMessage({kind:'response',requestId,ok:false,error:{name:err?.name||'Error',message:String(err?.message||err),stack:String(err?.stack||'')}})}};

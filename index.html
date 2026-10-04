@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="DuaOnDevice">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>DuaOnDevice — v1.0 Public Build</title>
+<title>DuaOnDevice — v1.1 Public Build</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -30,8 +30,22 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<div id="app" aria-live="polite"></div>
+<div id="app" aria-live="polite"><div id="bootFallback" style="padding:28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:inherit">Starting DuaOnDevice…</div></div>
 <noscript>DuaOnDevice requires JavaScript for its local application shell.</noscript>
-<script src="app.js" defer></script>
+<script>
+(function(){
+  function showBootError(value){
+    var app=document.getElementById('app');
+    if(!app)return;
+    var msg='DuaOnDevice could not start.';
+    if(value){try{msg+=' '+String(value.message||value.reason||value).slice(0,500)}catch(e){}}
+    app.innerHTML='<div style="padding:28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"><strong>DuaOnDevice could not start.</strong><br><small>'+msg.replace(/[&<>"']/g,'')+'</small></div>';
+  }
+  window.__dodShowBootError=showBootError;
+  window.addEventListener('error',function(e){showBootError(e.error||e.message)});
+  window.addEventListener('unhandledrejection',function(e){showBootError(e.reason)});
+})();
+</script>
+<script type="module" src="boot.js?v=v1-1-public-build-1"></script>
 </body>
 </html>

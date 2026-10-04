@@ -1,0 +1,16 @@
+DuaOnDevice — Local AI Model Notices
+
+v1.1 Smart Search release model
+====================
+
+Multilingual E5 Small
+- Runtime model id: Xenova/multilingual-e5-small
+- Upstream model: intfloat/multilingual-e5-small
+- Use in DuaOnDevice: local feature extraction / semantic retrieval
+- Browser representation: quantized ONNX (q8) through Transformers.js
+- License: MIT
+- Source: https://huggingface.co/intfloat/multilingual-e5-small
+- Web-ready ONNX conversion: https://huggingface.co/Xenova/multilingual-e5-small
+
+
+DuaOnDevice remains responsible for its own application/source license separately from third-party model/runtime notices.
