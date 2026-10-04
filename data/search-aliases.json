@@ -1,0 +1,169 @@
+{
+  "forgiveness": [
+    "forgive",
+    "forgiveness",
+    "istighfar",
+    "repentance",
+    "তাওবা",
+    "ইস্তিগফার",
+    "ক্ষমা",
+    "মাফ"
+  ],
+  "protection": [
+    "protection",
+    "protect",
+    "safety",
+    "refuge",
+    "আশ্রয়",
+    "রক্ষা",
+    "সুরক্ষা"
+  ],
+  "guidance": [
+    "guidance",
+    "guide",
+    "hidayah",
+    "হিদায়াত",
+    "পথ",
+    "অন্তর"
+  ],
+  "family": [
+    "parents",
+    "mother",
+    "father",
+    "children",
+    "child",
+    "offspring",
+    "spouse",
+    "wife",
+    "husband",
+    "marriage",
+    "nikah",
+    "বাবা",
+    "মা",
+    "পিতা",
+    "মাতা",
+    "সন্তান",
+    "বিয়ে",
+    "বিবাহ",
+    "নিকাহ",
+    "স্বামী",
+    "স্ত্রী"
+  ],
+  "prayer": [
+    "prayer",
+    "salah",
+    "salat",
+    "wudu",
+    "wudhu",
+    "oju",
+    "ablution",
+    "qunut",
+    "istikhara",
+    "নামাজ",
+    "সালাত",
+    "ওযু",
+    "অজু",
+    "কুনুত",
+    "ইস্তিখারা"
+  ],
+  "sleep": [
+    "sleep",
+    "bed",
+    "waking",
+    "night",
+    "ঘুম",
+    "রাত",
+    "জাগা"
+  ],
+  "travel": [
+    "travel",
+    "journey",
+    "safar",
+    "সফর",
+    "ভ্রমণ"
+  ],
+  "health": [
+    "health",
+    "healing",
+    "sick",
+    "illness",
+    "pain",
+    "ruqyah",
+    "রোগ",
+    "অসুস্থ",
+    "ব্যথা",
+    "আরোগ্য",
+    "রুকইয়া"
+  ],
+  "knowledge": [
+    "knowledge",
+    "ilm",
+    "জ্ঞান",
+    "ইলম"
+  ],
+  "provision": [
+    "provision",
+    "rizq",
+    "sustenance",
+    "halal",
+    "রিযিক",
+    "রিজিক",
+    "হালাল"
+  ],
+  "distress": [
+    "anxiety",
+    "worry",
+    "sadness",
+    "sorrow",
+    "distress",
+    "debt",
+    "hardship",
+    "দুশ্চিন্তা",
+    "চিন্তা",
+    "দুঃখ",
+    "কষ্ট",
+    "ঋণ"
+  ],
+  "weather": [
+    "rain",
+    "wind",
+    "বৃষ্টি",
+    "বাতাস"
+  ],
+  "death": [
+    "death",
+    "funeral",
+    "grave",
+    "janazah",
+    "মৃত্যু",
+    "জানাজা",
+    "কবর"
+  ],
+  "gratitude": [
+    "gratitude",
+    "thanks",
+    "shukr",
+    "কৃতজ্ঞতা",
+    "শোকর"
+  ],
+  "morning_evening": [
+    "morning",
+    "evening",
+    "সকাল",
+    "সন্ধ্যা"
+  ],
+  "home": [
+    "home",
+    "house",
+    "toilet",
+    "clothing",
+    "বাড়ি",
+    "ঘর",
+    "টয়লেট",
+    "পোশাক"
+  ],
+  "qunut": [
+    "qunut",
+    "কুনুত"
+  ]
+}
